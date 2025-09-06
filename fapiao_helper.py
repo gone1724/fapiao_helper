@@ -2,6 +2,11 @@ import os,re,shutil
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+except ImportError:
+    TkinterDnD = None
+    DND_FILES = None
 
 import xlsxwriter
 from pdfminer.high_level import extract_text
@@ -16,32 +21,56 @@ class FapiaoHelper:
         self._setup_ui()
 
     def _setup_ui(self):
-        self.root.title("报销清单生成器")
-        # 简洁窗口，仅一个大按钮
-        w, h = 360, 180
-        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
-        x, y = int((sw - w) / 2), int((sh - h) / 2)
-        self.root.geometry(f"{w}x{h}+{x}+{y}")
+        """初始化窗口与主控件。尽量保持紧凑清晰。"""
+        self.root.title("发票助手")
+        self._set_window_geometry(360, 200)
 
+        # 统一控件样式：如需调整在此修改
+        self._style = dict(width=28, height=3, font=("Microsoft YaHei", 14), relief=tk.RAISED)
+
+        # 主容器
         main = tk.Frame(self.root)
         main.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
 
-        btn = tk.Button(
-            main,
-            text="选择文件夹并一键处理",
-            command=self._on_click_process,
-            width=28,
-            height=3,
-            bg="#dfe9ff",
-            relief=tk.RAISED
-        )
-        btn.pack(expand=True)
+        # 垂直堆叠区域
+        vertical = tk.Frame(main)
+        vertical.pack(expand=True)
+
+        # 选择按钮
+        self.select_btn = tk.Button(vertical, text="选择文件夹", command=self._on_click_process, **self._style)
+        self.select_btn.pack(pady=(0, 10))
+
+        # 拖拽区域（模拟按钮）
+        self.drag_label = tk.Label(vertical, text="或拖拽文件夹到这里", **self._style)
+        self.drag_label.pack()
+        if TkinterDnD and DND_FILES:
+            self.drag_label.drop_target_register(DND_FILES)
+            self.drag_label.dnd_bind('<<Drop>>', self._on_drop_process)
+
+    def _set_window_geometry(self, w: int, h: int):
+        """窗口居中尺寸设置。"""
+        sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
+        x, y = int((sw - w) / 2), int((sh - h) / 2)
+        self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def _on_click_process(self):
         dir_path = filedialog.askdirectory()
         if not dir_path:
             return
+        self._process_and_show(dir_path)
 
+    def _on_drop_process(self, event):
+        """拖拽回调：提取路径并触发处理。"""
+        path = event.data.strip()
+        if path.startswith('{') and path.endswith('}'):
+            path = path[1:-1]
+        if os.path.isdir(path):
+            self._process_and_show(path)
+        else:
+            messagebox.showerror("错误", "请拖入文件夹！")
+
+    def _process_and_show(self, dir_path):
+        """处理指定文件夹并弹窗显示结果。"""
         scanned_pdf, renamed_pdf, failed_pdf = self._rename_pdfs_with_amount(dir_path)
         file_count, total_amount, report_path = self._generate_excel(dir_path)
 
@@ -160,6 +189,10 @@ class FapiaoHelper:
 
 
 if __name__ == "__main__":
-    root = tk.Tk()
+    # 使用 TkinterDnD2 支持拖拽
+    if TkinterDnD:
+        root = TkinterDnD.Tk()
+    else:
+        root = tk.Tk()
     app = FapiaoHelper(root)
     root.mainloop()

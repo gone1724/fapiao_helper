@@ -1,2 +1,4 @@
-pdfminer.six==20221105
-xlsxwriter==3.1.9
+# pip install -r requirements.txt
+tkinterdnd2
+xlsxwriter
+pdfminer.six
