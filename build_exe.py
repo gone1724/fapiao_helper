@@ -1,6 +1,15 @@
 #!/usr/bin/env python3
 """
-PyInstaller打包脚本 - 将fapiao.py打包为Windows可执行文件
+PyInstaller 打包脚本 - 将 fapiao_helper.py 打包为 Windows 可执行文件。
+
+新增支持 (方法B):
+1. 若存在目录 tk_extra/tkdnd2.9 则自动随包加入 (供 tkinterdnd2 使用)。
+2. 自动生成运行时 hook (_tkdnd_runtime_hook.py) 在 PyInstaller 解包目录中设置环境变量 TCLLIBPATH 以便 Tcl 找到 tkdnd。 
+     Windows 下不需要修改代码主体即可启用拖拽。
+
+使用步骤:
+    在项目根目录创建 tk_extra/tkdnd2.9 并放入官方 tkdnd2.9 发行包里的所有文件 (pkgIndex.tcl、tkdnd.tcl、*.dll 等)。
+    然后运行本脚本。若目录不存在会继续打包但仅提示不启用拖拽资源打包。
 """
 
 import subprocess
@@ -36,7 +45,7 @@ def check_dependencies():
         
         try:
             install_cmd = [sys.executable, '-m', 'pip', 'install', '-r', requirements_file]
-            result = subprocess.run(install_cmd, capture_output=True, text=True)
+            result = subprocess.run(install_cmd, capture_output=True, text=True, encoding='utf-8', errors='replace')
             
             if result.returncode == 0:
                 print("✅ 依赖库安装成功！")
@@ -55,46 +64,93 @@ def check_dependencies():
     return True
 
 
+def ensure_tkdnd_hook(tkdnd_folder: str) -> str | None:
+    """若需要支持 tkdnd，生成运行时 hook 文件并返回其路径；否则返回 None。"""
+    if not os.path.isdir(tkdnd_folder):
+        return None
+    hook_path = '_tkdnd_runtime_hook.py'
+    code = (
+        "import os, sys\n"
+        "base = getattr(sys, '_MEIPASS', None)\n"
+        "if base:\n"
+        "    cand = os.path.join(base, 'tkdnd2.9')\n"
+        "    if os.path.isdir(cand):\n"
+        "        prev = os.environ.get('TCLLIBPATH', '')\n"
+        "        os.environ['TCLLIBPATH'] = (cand + (' ' + prev if prev else ''))\n"
+    )
+    with open(hook_path, 'w', encoding='utf-8') as f:
+        f.write(code)
+    return hook_path
+
+
 def build_executable():
-    """使用PyInstaller打包Python脚本"""
-    
-    # 首先检查依赖
+    """使用 PyInstaller 打包 Python 脚本，并可选包含 tkdnd2.9 目录。"""
+
     if not check_dependencies():
         print("\n❌ 依赖检查失败，打包中止")
         return
-    
-    # PyInstaller命令参数
+
+    # 可选 tkdnd 目录
+    tkdnd_dir = os.path.join('tk_extra', 'tkdnd2.9')
+    has_tkdnd = os.path.isdir(tkdnd_dir)
+    if has_tkdnd:
+        print(f"✔ 发现 tkdnd 目录: {tkdnd_dir}，将随包加入并启用拖拽功能。")
+    else:
+        print("ℹ 未发现 tk_extra/tkdnd2.9，打包后若缺少系统 tkdnd 将仅禁用拖拽。")
+
+    # 生成 hook (仅在有 tkdnd 时)
+    hook_file = ensure_tkdnd_hook(tkdnd_dir) if has_tkdnd else None
+
+    # PyInstaller 基础命令
     cmd = [
         'pyinstaller',
-        '--name=fapiao_tool',      # 可执行文件名称
-        '--onefile',               # 打包成单个可执行文件
-        '--windowed',              # 不显示控制台窗口（GUI应用）
-        '--icon=NONE',             # 不使用图标
-        '--clean',                 # 清理临时文件
-        'fapiao.py'                # 主脚本文件
+        '--name=fapiao_helper',
+        '--onefile',
+        '--windowed',
+        '--icon=NONE',
+        '--clean',
     ]
-    
-    print("开始打包fapiao.py为可执行文件...")
-    print(f"执行命令: {' '.join(cmd)}")
-    
+
+    if has_tkdnd:
+        # Windows 下 --add-data 使用 分号 ; 作为分隔符
+        add_data_arg = f"{tkdnd_dir}{os.pathsep}tkdnd2.9"
+        cmd += ['--add-data', add_data_arg]
+    if hook_file:
+        cmd += ['--runtime-hook', hook_file]
+
+    cmd.append('fapiao_helper.py')
+
+    print("开始打包 fapiao_helper.py 为可执行文件...")
+    print('执行命令:')
+    print(' '.join(cmd))
+
     try:
-        # 执行打包命令
-        result = subprocess.run(cmd, capture_output=True, text=True, cwd=os.getcwd())
-        
+        result = subprocess.run(
+            cmd,
+            capture_output=True,
+            text=True,
+            encoding='utf-8',
+            errors='replace',
+            cwd=os.getcwd()
+        )
+
         if result.returncode == 0:
             print("\n✅ 打包成功！")
-            print("可执行文件位置: dist/fapiao_tool.exe")
-            print("\n打包日志:")
-            print(result.stdout)
+            print("可执行文件位置: dist/fapiao_helper.exe")
+            if has_tkdnd:
+                print("拖拽支持: 已尝试随包注入 tkdnd2.9 (运行时自动设置 TCLLIBPATH)")
+            else:
+                print("拖拽支持: 未包含 tkdnd2.9，需系统已有 tkdnd 或改用普通点击选择。")
+            print("\n打包日志(截取):")
+            print(result.stdout[-4000:])  # 避免超长
         else:
             print("\n❌ 打包失败！")
             print("错误信息:")
             print(result.stderr)
-            print("\n标准输出:")
-            print(result.stdout)
-            
+            print("\n标准输出(截取):")
+            print(result.stdout[-4000:])
     except Exception as e:
-        print(f"\n❌ 执行打包命令时发生错误: {e}")
+        print(f"\n❌ 执行打包命令时发生错误: {e} | 建议检查: 1) pyinstaller 是否已安装 2) 路径/权限 3) 防病毒拦截")
 
 if __name__ == "__main__":
     build_executable()
