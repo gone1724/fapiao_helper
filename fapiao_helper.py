@@ -16,11 +16,9 @@ class FapiaoHelper:
         self._setup_ui()
 
     def _setup_ui(self):
-        """初始化窗口与主控件。尽量保持紧凑清晰。"""
         self.root.title("发票助手")
         self._set_window_geometry(360, 200)
 
-        # 统一控件样式：如需调整在此修改
         self._style = dict(width=28, height=3, font=("Microsoft YaHei", 14), relief=tk.RAISED)
 
         # 主容器
@@ -35,8 +33,6 @@ class FapiaoHelper:
         self.select_btn = tk.Button(vertical, text="选择文件夹", command=self._on_click_process, **self._style)
         self.select_btn.pack(pady=(0, 10))
 
-
-
     def _set_window_geometry(self, w: int, h: int):
         """窗口居中尺寸设置。"""
         sw, sh = self.root.winfo_screenwidth(), self.root.winfo_screenheight()
@@ -48,8 +44,6 @@ class FapiaoHelper:
         if not dir_path:
             return
         self._process_and_show(dir_path)
-
-
 
     def _process_and_show(self, dir_path):
         """处理指定文件夹并弹窗显示结果。"""
@@ -168,7 +162,6 @@ class FapiaoHelper:
             candidate = os.path.join(dir_path, f"{base} ({i}){ext}")
             i += 1
         return candidate
-
 
 if __name__ == "__main__":
     root = tk.Tk()
