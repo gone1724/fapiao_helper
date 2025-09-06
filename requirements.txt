@@ -1,0 +1,2 @@
+pdfminer.six==20221105
+xlsxwriter==3.1.9
