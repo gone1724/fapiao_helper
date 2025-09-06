@@ -2,11 +2,6 @@ import os,re,shutil
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
-try:
-    from tkinterdnd2 import TkinterDnD, DND_FILES
-except ImportError:
-    TkinterDnD = None
-    DND_FILES = None
 
 import xlsxwriter
 from pdfminer.high_level import extract_text
@@ -40,12 +35,7 @@ class FapiaoHelper:
         self.select_btn = tk.Button(vertical, text="选择文件夹", command=self._on_click_process, **self._style)
         self.select_btn.pack(pady=(0, 10))
 
-        # 拖拽区域（模拟按钮）
-        self.drag_label = tk.Label(vertical, text="或拖拽文件夹到这里", **self._style)
-        self.drag_label.pack()
-        if TkinterDnD and DND_FILES:
-            self.drag_label.drop_target_register(DND_FILES)
-            self.drag_label.dnd_bind('<<Drop>>', self._on_drop_process)
+
 
     def _set_window_geometry(self, w: int, h: int):
         """窗口居中尺寸设置。"""
@@ -59,15 +49,7 @@ class FapiaoHelper:
             return
         self._process_and_show(dir_path)
 
-    def _on_drop_process(self, event):
-        """拖拽回调：提取路径并触发处理。"""
-        path = event.data.strip()
-        if path.startswith('{') and path.endswith('}'):
-            path = path[1:-1]
-        if os.path.isdir(path):
-            self._process_and_show(path)
-        else:
-            messagebox.showerror("错误", "请拖入文件夹！")
+
 
     def _process_and_show(self, dir_path):
         """处理指定文件夹并弹窗显示结果。"""
@@ -189,10 +171,6 @@ class FapiaoHelper:
 
 
 if __name__ == "__main__":
-    # 使用 TkinterDnD2 支持拖拽
-    if TkinterDnD:
-        root = TkinterDnD.Tk()
-    else:
-        root = tk.Tk()
+    root = tk.Tk()
     app = FapiaoHelper(root)
     root.mainloop()

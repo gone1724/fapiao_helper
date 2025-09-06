@@ -2,14 +2,7 @@
 """
 PyInstaller 打包脚本 - 将 fapiao_helper.py 打包为 Windows 可执行文件。
 
-新增支持 (方法B):
-1. 若存在目录 tk_extra/tkdnd2.9 则自动随包加入 (供 tkinterdnd2 使用)。
-2. 自动生成运行时 hook (_tkdnd_runtime_hook.py) 在 PyInstaller 解包目录中设置环境变量 TCLLIBPATH 以便 Tcl 找到 tkdnd。 
-     Windows 下不需要修改代码主体即可启用拖拽。
-
-使用步骤:
-    在项目根目录创建 tk_extra/tkdnd2.9 并放入官方 tkdnd2.9 发行包里的所有文件 (pkgIndex.tcl、tkdnd.tcl、*.dll 等)。
-    然后运行本脚本。若目录不存在会继续打包但仅提示不启用拖拽资源打包。
+简化版本：已移除拖拽功能支持，仅保留基本的打包功能。
 """
 
 import subprocess
@@ -63,43 +56,12 @@ def check_dependencies():
     print("✅ 所有依赖库已安装")
     return True
 
-
-def ensure_tkdnd_hook(tkdnd_folder: str) -> str | None:
-    """若需要支持 tkdnd，生成运行时 hook 文件并返回其路径；否则返回 None。"""
-    if not os.path.isdir(tkdnd_folder):
-        return None
-    hook_path = '_tkdnd_runtime_hook.py'
-    code = (
-        "import os, sys\n"
-        "base = getattr(sys, '_MEIPASS', None)\n"
-        "if base:\n"
-        "    cand = os.path.join(base, 'tkdnd2.9')\n"
-        "    if os.path.isdir(cand):\n"
-        "        prev = os.environ.get('TCLLIBPATH', '')\n"
-        "        os.environ['TCLLIBPATH'] = (cand + (' ' + prev if prev else ''))\n"
-    )
-    with open(hook_path, 'w', encoding='utf-8') as f:
-        f.write(code)
-    return hook_path
-
-
 def build_executable():
-    """使用 PyInstaller 打包 Python 脚本，并可选包含 tkdnd2.9 目录。"""
+    """使用 PyInstaller 打包 Python 脚本"""
 
     if not check_dependencies():
         print("\n❌ 依赖检查失败，打包中止")
         return
-
-    # 可选 tkdnd 目录
-    tkdnd_dir = os.path.join('tk_extra', 'tkdnd2.9')
-    has_tkdnd = os.path.isdir(tkdnd_dir)
-    if has_tkdnd:
-        print(f"✔ 发现 tkdnd 目录: {tkdnd_dir}，将随包加入并启用拖拽功能。")
-    else:
-        print("ℹ 未发现 tk_extra/tkdnd2.9，打包后若缺少系统 tkdnd 将仅禁用拖拽。")
-
-    # 生成 hook (仅在有 tkdnd 时)
-    hook_file = ensure_tkdnd_hook(tkdnd_dir) if has_tkdnd else None
 
     # PyInstaller 基础命令
     cmd = [
@@ -109,16 +71,8 @@ def build_executable():
         '--windowed',
         '--icon=NONE',
         '--clean',
+        'fapiao_helper.py'
     ]
-
-    if has_tkdnd:
-        # Windows 下 --add-data 使用 分号 ; 作为分隔符
-        add_data_arg = f"{tkdnd_dir}{os.pathsep}tkdnd2.9"
-        cmd += ['--add-data', add_data_arg]
-    if hook_file:
-        cmd += ['--runtime-hook', hook_file]
-
-    cmd.append('fapiao_helper.py')
 
     print("开始打包 fapiao_helper.py 为可执行文件...")
     print('执行命令:')
@@ -137,10 +91,6 @@ def build_executable():
         if result.returncode == 0:
             print("\n✅ 打包成功！")
             print("可执行文件位置: dist/fapiao_helper.exe")
-            if has_tkdnd:
-                print("拖拽支持: 已尝试随包注入 tkdnd2.9 (运行时自动设置 TCLLIBPATH)")
-            else:
-                print("拖拽支持: 未包含 tkdnd2.9，需系统已有 tkdnd 或改用普通点击选择。")
             print("\n打包日志(截取):")
             print(result.stdout[-4000:])  # 避免超长
         else:
