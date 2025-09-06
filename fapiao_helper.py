@@ -1,10 +1,4 @@
-# 2023-04-07: designed by ChatGPT  
-# 2025-09-05: 复制粘贴后，由AI重构
-# pip install pdfminer.six xlsxwriter
-
-import os
-import re
-import shutil
+import os,re,shutil
 from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, messagebox
@@ -16,8 +10,7 @@ YEN_AMOUNT_PATTERN = re.compile(r'[¥￥]\s*([0-9]+(?:\.[0-9]{1,2})?)')
 AMOUNT_SUFFIX_PATTERN = re.compile(r'_(\d+(?:\.\d{1,2}))元$', re.IGNORECASE)
 REPORT_NAME_PATTERN = re.compile(r'_(\d+(?:\.\d{1,2}))元\.(pdf|jpeg|jpg|png)$', re.IGNORECASE)
 
-
-class FapiaoApp:
+class FapiaoHelper:
     def __init__(self, root):
         self.root = root
         self._setup_ui()
@@ -50,7 +43,7 @@ class FapiaoApp:
             return
 
         scanned_pdf, renamed_pdf, failed_pdf = self._rename_pdfs_with_amount(dir_path)
-        file_count, total_amount, report_path = self._generate_report(dir_path)
+        file_count, total_amount, report_path = self._generate_excel(dir_path)
 
         message = (
             f"PDF 扫描数量：{scanned_pdf}\n"
@@ -71,7 +64,7 @@ class FapiaoApp:
 
             scanned += 1
 
-            # 已带“_金额元”后缀的 PDF 跳过
+            # 已带"_金额元"后缀的 PDF 跳过
             if AMOUNT_SUFFIX_PATTERN.search(base):
                 continue
 
@@ -96,7 +89,7 @@ class FapiaoApp:
                 failed += 1
                 continue
 
-            # 生成“源文件名_金额元.pdf”（单下划线）
+            # 生成"源文件名_金额元.pdf"（单下划线）
             new_base = f"{base}_{amount_str}元"
             dst_name = f"{new_base}.pdf"
             dst = self._unique_path(dir_path, dst_name)
@@ -109,7 +102,7 @@ class FapiaoApp:
 
         return scanned, renamed, failed
 
-    def _generate_report(self, dir_path):
+    def _generate_excel(self, dir_path):
         today = datetime.today().strftime("%Y-%m-%d-%H%M%S")
         tmp_path = os.path.join(dir_path, f"{today}_报销0.00元.xlsx")
 
@@ -168,5 +161,5 @@ class FapiaoApp:
 
 if __name__ == "__main__":
     root = tk.Tk()
-    app = FapiaoApp(root)
+    app = FapiaoHelper(root)
     root.mainloop()
