@@ -1,0 +1,7 @@
+[project]
+name = "fapiao_helper"
+version = "0.1.0"
+dependencies = [
+    "pdfminer-six>=20250506",
+    "xlsxwriter>=3.2.5",
+]
