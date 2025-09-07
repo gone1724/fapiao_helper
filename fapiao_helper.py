@@ -19,8 +19,6 @@ class FapiaoHelper:
         self.root.title("发票助手")
         self._set_window_geometry(360, 200)
 
-        self._style = dict(width=28, height=3, font=("Microsoft YaHei", 14), relief=tk.RAISED)
-
         # 主容器
         main = tk.Frame(self.root)
         main.pack(fill=tk.BOTH, expand=True, padx=20, pady=20)
@@ -30,7 +28,15 @@ class FapiaoHelper:
         vertical.pack(expand=True)
 
         # 选择按钮
-        self.select_btn = tk.Button(vertical, text="选择文件夹", command=self._on_click_process, **self._style)
+        self.select_btn = tk.Button(
+            vertical, 
+            text="选择文件夹", 
+            command=self._on_click_process,
+            width=28,
+            height=3,
+            font=("Microsoft YaHei", 14),
+            relief=tk.RAISED
+        )
         self.select_btn.pack(pady=(0, 10))
 
     def _set_window_geometry(self, w: int, h: int):
