@@ -141,5 +141,4 @@ if __name__ == "__main__":
         sys.exit(1)
     except Exception as e:
         print(f"\n发生错误: {e}")
-        input("按任意键退出...")
         sys.exit(1)
