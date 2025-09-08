@@ -51,35 +51,35 @@ def build_exe():
     print("开始构建 exe 文件...")
     
     # PyInstaller 命令参数
+    icon_path = (Path(__file__).resolve().parent / "icon.ico")
     cmd = [
         sys.executable, "-m", "PyInstaller",
         "--onefile",                    # 打包成单个文件
         "--windowed",                   # 不显示控制台窗口
         "--name=发票助手",               # 指定输出文件名
-        "--icon=icon.ico",              # 图标文件（如果存在）
         "--add-data=README.md;.",       # 添加README文件
         "--distpath=dist",              # 输出目录
         "--workpath=build",             # 工作目录
         "--clean",                      # 清理临时文件
         "fapiao_helper.py"              # 主程序文件
     ]
-    
-    # 如果没有图标文件，移除图标参数
-    if not os.path.exists("icon.ico"):
-        cmd = [arg for arg in cmd if not arg.startswith("--icon")]
+
+    # 处理图标（使用绝对路径，避免因CWD不同找不到图标）
+    if icon_path.exists():
+        # 在主程序文件之前插入 --icon <path>
+        cmd[-1:-1] = ["--icon", str(icon_path)]
+        print(f"使用图标: {icon_path}")
+    else:
         print("注意: 未找到 icon.ico 文件，将使用默认图标")
     
     try:
         print("执行命令:", " ".join(cmd))
-        result = subprocess.run(cmd, check=True, capture_output=True, text=True)
+        # 不捕获输出，避免Windows控制台编码导致的UnicodeDecodeError
+        subprocess.run(cmd, check=True)
         print("✓ 构建成功!")
         return True
     except subprocess.CalledProcessError as e:
         print(f"✗ 构建失败: {e}")
-        if e.stdout:
-            print("标准输出:", e.stdout)
-        if e.stderr:
-            print("错误输出:", e.stderr)
         return False
 
 def show_result():
@@ -130,11 +130,9 @@ if __name__ == "__main__":
     try:
         success = main()
         if success:
-            print("\n按任意键退出...")
-            input()
+            print("\n构建成功")
         else:
-            print("\n构建失败，按任意键退出...")
-            input()
+            print("\n构建失败")
             sys.exit(1)
     except KeyboardInterrupt:
         print("\n用户取消操作")

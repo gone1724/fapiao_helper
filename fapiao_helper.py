@@ -46,7 +46,16 @@ class FapiaoHelper:
         self.root.geometry(f"{w}x{h}+{x}+{y}")
 
     def _on_click_process(self):
-        dir_path = filedialog.askdirectory()
+        old_cwd = os.getcwd()
+        try:
+            dir_path = filedialog.askdirectory()
+        finally:
+            # Windows下tkinter的文件对话框可能会更改进程当前工作目录，
+            # 若保持在目标目录会导致该目录在程序存活期间无法删除/重命名。
+            try:
+                os.chdir(old_cwd)
+            except Exception:
+                pass
         if not dir_path:
             return
         self._process_and_show(dir_path)
@@ -117,38 +126,37 @@ class FapiaoHelper:
         today = datetime.today().strftime("%Y-%m-%d-%H%M%S")
         tmp_path = os.path.join(dir_path, f"{today}_报销0.00元.xlsx")
 
-        workbook = xlsxwriter.Workbook(tmp_path)
-        ws = workbook.add_worksheet()
-        money_fmt = workbook.add_format({'num_format': '#,##0.00'})
+        # 使用上下文管理器，确保异常情况下也能释放文件句柄
+        with xlsxwriter.Workbook(tmp_path) as workbook:
+            ws = workbook.add_worksheet()
+            money_fmt = workbook.add_format({'num_format': '#,##0.00'})
 
-        ws.write('A1', '文件名')
-        ws.write('B1', '报销金额')
+            ws.write('A1', '文件名')
+            ws.write('B1', '报销金额')
 
-        row = 1
-        total = 0.0
-        count = 0
+            row = 1
+            total = 0.0
+            count = 0
 
-        for name in sorted(os.listdir(dir_path)):
-            m = REPORT_NAME_PATTERN.search(name)
-            if not m:
-                continue
-            try:
-                amount = float(m.group(1))
-            except ValueError:
-                continue
+            for name in sorted(os.listdir(dir_path)):
+                m = REPORT_NAME_PATTERN.search(name)
+                if not m:
+                    continue
+                try:
+                    amount = float(m.group(1))
+                except ValueError:
+                    continue
 
-            ws.write(row, 0, name)
-            ws.write(row, 1, amount, money_fmt)
-            total += amount
-            count += 1
-            row += 1
+                ws.write(row, 0, name)
+                ws.write(row, 1, amount, money_fmt)
+                total += amount
+                count += 1
+                row += 1
 
-        ws.write(row, 0, '总金额')
-        ws.write_number(row, 1, total, money_fmt)
-        ws.set_column('A:A', 60)
-        ws.set_column('B:B', 16, money_fmt)
-
-        workbook.close()
+            ws.write(row, 0, '总金额')
+            ws.write_number(row, 1, total, money_fmt)
+            ws.set_column('A:A', 60)
+            ws.set_column('B:B', 16, money_fmt)
 
         final_path = os.path.join(dir_path, f"{today}_报销{total:.2f}元.xlsx")
         try:
