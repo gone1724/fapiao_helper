@@ -1,10 +1,4 @@
 #!/usr/bin/env python3
-"""
-PyInstaller 打包脚本 - 将 fapiao_helper.py 打包为 Windows 可执行文件。
-
-简化版本：已移除拖拽功能支持，仅保留基本的打包功能。
-"""
-
 import subprocess
 import sys
 import os
