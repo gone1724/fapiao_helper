@@ -16,7 +16,7 @@
 
 ## 打包为可执行文件
 
-使用提供的打包脚本 `build_exe.py` 可以将Python脚本打包成Windows可执行文件：
+使用[releases](https://github.com/gone1724/fapiao_helper/releases)，或用提供的打包脚本 `build_exe.py` 可以将Python脚本打包成Windows可执行文件：
 
 ```bash
 python build_exe.py
