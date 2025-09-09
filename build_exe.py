@@ -9,29 +9,8 @@ import os
 import sys
 import subprocess
 import shutil
+import PyInstaller
 from pathlib import Path
-
-def check_pyinstaller():
-    """检查是否安装了 PyInstaller"""
-    try:
-        import PyInstaller
-        print(f"✓ PyInstaller 已安装，版本: {PyInstaller.__version__}")
-        return True
-    except ImportError:
-        print("✗ PyInstaller 未安装")
-        return False
-
-def install_pyinstaller():
-    """安装 PyInstaller"""
-    print("正在安装 PyInstaller...")
-    try:
-        subprocess.run([sys.executable, "-m", "pip", "install", "pyinstaller"], 
-                      check=True, capture_output=True, text=True)
-        print("✓ PyInstaller 安装成功")
-        return True
-    except subprocess.CalledProcessError as e:
-        print(f"✗ PyInstaller 安装失败: {e}")
-        return False
 
 def clean_build_dirs():
     """清理之前的构建目录"""
@@ -57,10 +36,10 @@ def build_exe():
         "--onefile",                    # 打包成单个文件
         "--windowed",                   # 不显示控制台窗口
         "--name=发票助手",               # 指定输出文件名
-        "--add-data=README.md;.",       # 添加README文件
         "--distpath=dist",              # 输出目录
         "--workpath=build",             # 工作目录
         "--clean",                      # 清理临时文件
+        "--disable-windowed-traceback", # 禁用窗口化错误追踪
         "fapiao_helper.py"              # 主程序文件
     ]
 
@@ -110,11 +89,6 @@ def main():
     if not os.path.exists("fapiao_helper.py"):
         print("✗ 错误: 未找到主程序文件 fapiao_helper.py")
         return False
-    
-    # 检查并安装 PyInstaller
-    if not check_pyinstaller():
-        if not install_pyinstaller():
-            return False
     
     # 清理之前的构建
     clean_build_dirs()

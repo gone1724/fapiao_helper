@@ -3,5 +3,6 @@ name = "fapiao_helper"
 version = "0.1.0"
 dependencies = [
     "pdfminer-six>=20250506",
+    "pyinstaller>=6.15.0",
     "xlsxwriter>=3.2.5",
 ]
